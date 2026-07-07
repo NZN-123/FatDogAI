@@ -33,20 +33,28 @@ public class ChatController extends BaseController {
 
         req.setAttribute("chats", response);
 
+        // If no model is saved in session, set the last used model as default if exists
+        if (session.getAttribute("selectedModel") == null && !response.isEmpty()) {
+            String lastModel = response.get(response.size() - 1).model();
+            session.setAttribute("selectedModel", lastModel);
+        }
+
         req.getRequestDispatcher("%s/%s".formatted(VIEW_PREFIX, "chat.jsp"))
                 .forward(req, resp);
     }
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        String model = req.getParameter("model");
         Chat chat = new Chat(
                 req.getParameter("message"),
                 "USER",
                 req.getSession().getId(),
-                req.getParameter("model"),
+                model,
                 ZonedDateTime.now().toString()
         );
         chatService.save(chat);
+        req.getSession().setAttribute("selectedModel", model);
         resp.sendRedirect("%s/%s".formatted(req.getContextPath(), "chat"));
     }
 }
