@@ -179,13 +179,3 @@ http://localhost:8080/<context-path>/chat
 `ChatUseCase`, `ChatController`, `chat.jsp` 등 나머지 코드는 **한 줄도 바뀌지 않습니다.** 인메모리 저장소를 DB로 바꾸는 것도 `ChatRepository`를 구현하는 새 어댑터를 만들면 끝입니다.
 
 ---
-
-## ⚠️ 알려진 제약 / 개선 예정
-
-- **인메모리 저장** — 서버를 재시작하면 대화가 사라집니다. 실사용 시 DB 어댑터로 교체 필요.
-- **Groq 응답 후처리(`getFinalAnswer`)가 휴리스틱** — 줄 단위로 영어/마커를 지우고 한글만 남기는 방식이라, 답변이 영어이거나 형식이 다르면 잘려 나갈 수 있습니다.
-- **`WebEnvListener`의 디버그 로그 경로가 하드코딩** — 윈도우 절대경로(`C:\workspace\...`)라 다른 OS에서는 로그 파일 기록이 조용히 실패합니다(앱 동작에는 영향 없음).
-- **JSP 출력 미이스케이프** — `${chat.message}` 직접 출력으로 XSS 여지가 있어 `<c:out>` 처리 권장.
-- **`pom.xml`의 `junit-jupiter-api` 중복 선언** — 동일 의존성이 두 번 선언되어 있어 하나로 정리 필요. (`artifactId`/`name`은 `FatDogAI`로 정리 완료)
-
----
