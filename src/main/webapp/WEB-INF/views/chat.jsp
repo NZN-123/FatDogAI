@@ -202,6 +202,17 @@
         .chat-send-btn:hover {
             background: #4a4947;
         }
+
+        .chat-input:disabled,
+        .chat-send-btn:disabled,
+        .chat-model-select:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .chat-send-btn:disabled:hover {
+            background: #2c2a29;
+        }
     </style>
 </head>
 <body>
@@ -229,23 +240,71 @@
     </section>
 
     <footer class="chat-footer">
-        <form action="<c:url value="/chat"/>" method="post" class="chat-form">
+        <form action="<c:url value="/chat"/>" method="post" class="chat-form" id="chat-form">
             <div class="input-wrapper">
-                <input name="message" class="chat-input" placeholder="메시지를 입력하세요..." required autocomplete="off" />
-                <select name="model" class="chat-model-select">
+                <input name="message" class="chat-input" id="chat-input" placeholder="메시지를 입력하세요..." required autocomplete="off" />
+                <select name="model" class="chat-model-select" id="chat-model">
                     <option value="gemma-4-26b-a4b-it" ${selectedModel == 'gemma-4-26b-a4b-it' ? 'selected' : ''}>gemma-4-26b</option>
                     <option value="gemma-4-31b-it" ${selectedModel == 'gemma-4-31b-it' ? 'selected' : ''}>gemma-4-31b</option>
                     <option value="gemini-3.1-flash-lite" ${selectedModel == 'gemini-3.1-flash-lite' ? 'selected' : ''}>gemini-3.1</option>
                     <option value="nemotron-3-ultra-550b-a55b" ${selectedModel == 'nemotron-3-ultra-550b-a55b' ? 'selected' : ''}>네모트론 3 (Nemotron)</option>
                     <option value="qwen/qwen3.6-27b" ${selectedModel == 'qwen/qwen3.6-27b' ? 'selected' : ''}>Qwen 3.6</option>
                 </select>
-                <button class="chat-send-btn">전송</button>
+                <button class="chat-send-btn" id="chat-send">전송</button>
             </div>
         </form>
     </footer>
 </main>
 
 <script>
+    // Prevent duplicate submissions: on send, clear + disable the input
+    // until the response arrives (the page reloads once the server responds,
+    // which naturally re-enables everything on the fresh load).
+    (function () {
+        const form = document.getElementById('chat-form');
+        const input = document.getElementById('chat-input');
+        const sendBtn = document.getElementById('chat-send');
+        const modelSelect = document.getElementById('chat-model');
+        let submitting = false;
+
+        form.addEventListener('submit', function (e) {
+            // Block any further clicks/submits while a request is in flight.
+            if (submitting) {
+                e.preventDefault();
+                return;
+            }
+            submitting = true;
+
+            // A disabled form control is NOT included in the POST body, so
+            // mirror the values of the controls we lock into hidden fields
+            // before disabling them. (Missing "message"/"model" params would
+            // otherwise reach the server as null.)
+            const hiddenMessage = document.createElement('input');
+            hiddenMessage.type = 'hidden';
+            hiddenMessage.name = 'message';
+            hiddenMessage.value = input.value;
+            input.removeAttribute('name');
+            form.appendChild(hiddenMessage);
+
+            const hiddenModel = document.createElement('input');
+            hiddenModel.type = 'hidden';
+            hiddenModel.name = 'model';
+            hiddenModel.value = modelSelect.value;
+            modelSelect.removeAttribute('name');
+            form.appendChild(hiddenModel);
+
+            // Clear the visible message and lock the controls.
+            input.value = '';
+            input.disabled = true;
+            sendBtn.disabled = true;
+            modelSelect.disabled = true;
+        });
+
+        // After the response arrives the page reloads; put the cursor back in
+        // the message box so the user can keep typing without clicking again.
+        input.focus();
+    })();
+
     // Auto scroll to bottom
     const historyDiv = document.querySelector('.chat-history');
     if (historyDiv) {
