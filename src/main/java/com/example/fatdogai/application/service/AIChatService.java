@@ -22,11 +22,12 @@ public class AIChatService implements ChatUseCase {
     public void save(Chat chat) {
         chatRepository.save(chat);
         List<Chat> history = chatRepository.findAllByUserId(chat.userId());
-        String aiResponse = "";
-        if (chat.model() != null && (chat.model().contains("gemini") || chat.model().contains("gemma"))) {
+        String model = chat.model() == null ? "" : chat.model().toLowerCase();
+        String aiResponse;
+        if (model.contains("gemini") || model.contains("gemma")) {
             aiResponse = genAIChatProvider.useAI(chat, history);
-        } else if(chat.model().toLowerCase().contains("nemotron")){
-            aiResponse =  NimChatProvider.getInstance().useAI(chat,history);
+        } else if (model.contains("nemotron")) {
+            aiResponse = NimChatProvider.getInstance().useAI(chat, history);
         } else {
             aiResponse = groqChatProvider.useAI(chat, history);
         }
