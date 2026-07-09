@@ -300,6 +300,10 @@
                 sendBtn.disabled = true;
                 modelSelect.disabled = true;
             });
+
+            // After the response arrives the page reloads; put the cursor back in
+            // the message box so the user can keep typing without clicking again.
+            input.focus();
         })();
 
         // Auto scroll to bottom
