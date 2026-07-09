@@ -216,121 +216,119 @@
     </style>
 </head>
 <body>
-    <main class="chat-container">
-        <header class="chat-header">
-            <h1>FatDog AI</h1>
-            <p>차분하고 단정한 대화형 서비스</p>
-        </header>
+<main class="chat-container">
+    <header class="chat-header">
+        <h1>FatDog AI</h1>
+    </header>
 
-        <section class="chat-history">
-            <c:if test="${empty chats}">
-                <div class="empty-state">
-                    <p>아직 나눈 대화가 없습니다. 아래에서 메시지를 입력해보세요.</p>
+    <section class="chat-history">
+        <c:if test="${empty chats}">
+            <div class="empty-state">
+                <p>아직 나눈 대화가 없습니다. 아래에서 메시지를 입력해보세요.</p>
+            </div>
+        </c:if>
+        <c:forEach var="chat" items="${chats}">
+            <div class="message-card ${chat.owner == 'USER' ? 'user-message' : 'ai-message'}">
+                <div class="message-meta">
+                    <span class="message-owner">${chat.owner}</span>
+                    <span class="message-model">${chat.model}</span>
+                    <span class="message-time">${chat.timestamp}</span>
                 </div>
-            </c:if>
-            <c:forEach var="chat" items="${chats}">
-                <div class="message-card ${chat.owner == 'USER' ? 'user-message' : 'ai-message'}">
-                    <div class="message-meta">
-                        <span class="message-owner">${chat.owner}</span>
-                        <span class="message-model">${chat.model}</span>
-                        <span class="message-time">${chat.timestamp}</span>
-                    </div>
-                    <div class="message-body">${chat.message}</div>
-                </div>
-            </c:forEach>
-        </section>
+                <div class="message-body">${chat.message}</div>
+            </div>
+        </c:forEach>
+    </section>
 
-        <footer class="chat-footer">
-            <form action="<c:url value="/chat"/>" method="post" class="chat-form" id="chat-form">
-                <div class="input-wrapper">
-                    <input name="message" class="chat-input" id="chat-input" placeholder="메시지를 입력하세요..." required autocomplete="off" />
-                    <select name="model" class="chat-model-select" id="chat-model">
-                        <option value="gemma-4-26b-a4b-it" ${selectedModel == 'gemma-4-26b-a4b-it' ? 'selected' : ''}>gemma-4-26b</option>
-                        <option value="gemma-4-31b-it" ${selectedModel == 'gemma-4-31b-it' ? 'selected' : ''}>gemma-4-31b</option>
-                        <option value="gemini-3.1-flash-lite" ${selectedModel == 'gemini-3.1-flash-lite' ? 'selected' : ''}>gemini-3.1</option>
-                        <option value="nemotron-3-ultra-550b-a55b" ${selectedModel == 'nemotron-3-ultra-550b-a55b' ? 'selected' : ''}>네모트론 3 (Nemotron)</option>
-                        <option value="qwen/qwen3.6-27b" ${selectedModel == 'qwen/qwen3.6-27b' ? 'selected' : ''}>Qwen 3.6</option>
-                    </select>
-                    <button class="chat-send-btn" id="chat-send">전송</button>
-                </div>
-            </form>
-        </footer>
-    </main>
+    <footer class="chat-footer">
+        <form action="<c:url value="/chat"/>" method="post" class="chat-form" id="chat-form">
+            <div class="input-wrapper">
+                <input name="message" class="chat-input" id="chat-input" placeholder="메시지를 입력하세요..." required autocomplete="off" />
+                <select name="model" class="chat-model-select" id="chat-model">
+                    <option value="gemma-4-26b-a4b-it" ${selectedModel == 'gemma-4-26b-a4b-it' ? 'selected' : ''}>gemma-4-26b</option>
+                    <option value="gemma-4-31b-it" ${selectedModel == 'gemma-4-31b-it' ? 'selected' : ''}>gemma-4-31b</option>
+                    <option value="gemini-3.1-flash-lite" ${selectedModel == 'gemini-3.1-flash-lite' ? 'selected' : ''}>gemini-3.1</option>
+                    <option value="nemotron-3-ultra-550b-a55b" ${selectedModel == 'nemotron-3-ultra-550b-a55b' ? 'selected' : ''}>네모트론 3 (Nemotron)</option>
+                    <option value="qwen/qwen3.6-27b" ${selectedModel == 'qwen/qwen3.6-27b' ? 'selected' : ''}>Qwen 3.6</option>
+                </select>
+                <button class="chat-send-btn" id="chat-send">전송</button>
+            </div>
+        </form>
+    </footer>
+</main>
 
-    <script>
-        // Prevent duplicate submissions: on send, clear + disable the input
-        // until the response arrives (the page reloads once the server responds,
-        // which naturally re-enables everything on the fresh load).
-        (function () {
-            const form = document.getElementById('chat-form');
-            const input = document.getElementById('chat-input');
-            const sendBtn = document.getElementById('chat-send');
-            const modelSelect = document.getElementById('chat-model');
-            let submitting = false;
+<script>
+    // Prevent duplicate submissions: on send, clear + disable the input
+    // until the response arrives (the page reloads once the server responds,
+    // which naturally re-enables everything on the fresh load).
+    (function () {
+        const form = document.getElementById('chat-form');
+        const input = document.getElementById('chat-input');
+        const sendBtn = document.getElementById('chat-send');
+        const modelSelect = document.getElementById('chat-model');
+        let submitting = false;
 
-            form.addEventListener('submit', function (e) {
-                // Block any further clicks/submits while a request is in flight.
-                if (submitting) {
-                    e.preventDefault();
-                    return;
-                }
-                submitting = true;
-
-                // A disabled form control is NOT included in the POST body, so
-                // mirror the values of the controls we lock into hidden fields
-                // before disabling them. (Missing "message"/"model" params would
-                // otherwise reach the server as null.)
-                const hiddenMessage = document.createElement('input');
-                hiddenMessage.type = 'hidden';
-                hiddenMessage.name = 'message';
-                hiddenMessage.value = input.value;
-                input.removeAttribute('name');
-                form.appendChild(hiddenMessage);
-
-                const hiddenModel = document.createElement('input');
-                hiddenModel.type = 'hidden';
-                hiddenModel.name = 'model';
-                hiddenModel.value = modelSelect.value;
-                modelSelect.removeAttribute('name');
-                form.appendChild(hiddenModel);
-
-                // Clear the visible message and lock the controls.
-                input.value = '';
-                input.disabled = true;
-                sendBtn.disabled = true;
-                modelSelect.disabled = true;
-            });
-
-            // After the response arrives the page reloads; put the cursor back in
-            // the message box so the user can keep typing without clicking again.
-            input.focus();
-        })();
-
-        // Auto scroll to bottom
-        const historyDiv = document.querySelector('.chat-history');
-        if (historyDiv) {
-            historyDiv.scrollTop = historyDiv.scrollHeight;
-        }
-
-        // Format timestamps
-        document.querySelectorAll('.message-time').forEach(el => {
-            try {
-                const rawTime = el.innerText.trim();
-                if (rawTime) {
-                    const date = new Date(rawTime);
-                    if (!isNaN(date.getTime())) {
-                        el.innerText = date.toLocaleTimeString('ko-KR', { 
-                            hour: 'numeric', 
-                            minute: '2-digit',
-                            hour12: true 
-                        });
-                    }
-                }
-            } catch (e) {
-                // fallback to raw string if parsing fails
+        form.addEventListener('submit', function (e) {
+            // Block any further clicks/submits while a request is in flight.
+            if (submitting) {
+                e.preventDefault();
+                return;
             }
+            submitting = true;
+
+            // A disabled form control is NOT included in the POST body, so
+            // mirror the values of the controls we lock into hidden fields
+            // before disabling them. (Missing "message"/"model" params would
+            // otherwise reach the server as null.)
+            const hiddenMessage = document.createElement('input');
+            hiddenMessage.type = 'hidden';
+            hiddenMessage.name = 'message';
+            hiddenMessage.value = input.value;
+            input.removeAttribute('name');
+            form.appendChild(hiddenMessage);
+
+            const hiddenModel = document.createElement('input');
+            hiddenModel.type = 'hidden';
+            hiddenModel.name = 'model';
+            hiddenModel.value = modelSelect.value;
+            modelSelect.removeAttribute('name');
+            form.appendChild(hiddenModel);
+
+            // Clear the visible message and lock the controls.
+            input.value = '';
+            input.disabled = true;
+            sendBtn.disabled = true;
+            modelSelect.disabled = true;
         });
-    </script>
+
+        // After the response arrives the page reloads; put the cursor back in
+        // the message box so the user can keep typing without clicking again.
+        input.focus();
+    })();
+
+    // Auto scroll to bottom
+    const historyDiv = document.querySelector('.chat-history');
+    if (historyDiv) {
+        historyDiv.scrollTop = historyDiv.scrollHeight;
+    }
+
+    // Format timestamps
+    document.querySelectorAll('.message-time').forEach(el => {
+        try {
+            const rawTime = el.innerText.trim();
+            if (rawTime) {
+                const date = new Date(rawTime);
+                if (!isNaN(date.getTime())) {
+                    el.innerText = date.toLocaleTimeString('ko-KR', {
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        hour12: true
+                    });
+                }
+            }
+        } catch (e) {
+            // fallback to raw string if parsing fails
+        }
+    });
+</script>
 </body>
 </html>
-
